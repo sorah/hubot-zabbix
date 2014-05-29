@@ -1,0 +1,24 @@
+{
+  "name": "hubot-zabbix",
+  "version": "0.1.0",
+  "description": "Hubot script to integrate with Zabbix",
+  "main": "./index.coffee",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/sorah/hubot-zabbix"
+  },
+  "keywords": [
+    "hubot", "hubot-scripts", "zabbix"
+  ],
+  "author": "Shota Fukumori <her@sorah.jp> (sora_h)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/sorah/hubot-zabbix/issues"
+  },
+  "homepage": "https://github.com/sorah/hubot-zabbix",
+  "dependencies": {
+    "hubot": ">= 2.6.0",
+    "moment": ">= 2.6.0",
+    "coffee-script": ">= 1.1.0"
+  }
+}
