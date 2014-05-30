@@ -130,6 +130,7 @@ module.exports = (robot) ->
         {asc: 'ASC', desc: 'DESC', DESC: 'DESC', ASC: 'ASC'}[key]
     else
       params.sortfield = ['lastchange', 'priority']
+      params.sortorder = ['DESC', 'DESC']
 
     request msg, 'trigger.get', params, (res) ->
       lines = for trigger in res.result
