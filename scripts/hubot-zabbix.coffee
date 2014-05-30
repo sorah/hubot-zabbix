@@ -12,15 +12,18 @@
 #   hubot zabbix events on <hostname> - list active events on host
 #   hubot zabbix events of <hostgroup> - list active events on hostgroup
 #   hubot zabbix events sort by [severity|time|hostname] - list active events sorted by given key (available on all `events` command)
+#   hubot zabbix graphs <regexp> on <hostname> - list graphs like <keyword> on <hostname>
 #
 # Author:
 #   Shota Fukumori (sora_h) <http://sorah.jp/>
 
+crypto = require('crypto')
 util = require('util')
 moment = require('moment')
 
 module.exports = (robot) ->
-  url = "#{process.env.HUBOT_ZABBIX_ENDPOINT.replace(/\/$/,'')}/api_jsonrpc.php"
+  url = process.env.HUBOT_ZABBIX_ENDPOINT.replace(/\/$/,'')
+  rpcUrl = "#{url}/api_jsonrpc.php"
 
   ##### Request methods
 
@@ -35,16 +38,16 @@ module.exports = (robot) ->
     payload.auth = token if token
 
     robot.logger.debug("Zabbix #{method} <- #{util.inspect(params)}")
-    robot.http(url)
+    robot.http(rpcUrl)
       .header('Content-Type', 'application/json')
       .post(JSON.stringify(payload)) (err, res, body) ->
-        robot.logger.debug("Zabbix #{method} -> #{body}")
+        #robot.logger.info("Zabbix #{method} -> #{body}")
         callback JSON.parse(body), err, res, body
 
   request = (msg, method, params, callback) ->
     request_(method, params, (json, err, res, body) ->
       if json.error
-        msg.send("ERR: #{util.inspect(res.error)}")
+        msg.send("ERR: #{util.inspect(res.error)}") if msg
         return
       callback(json, err, res, body)
     )
@@ -70,6 +73,66 @@ module.exports = (robot) ->
         callback(null) if callback
     )
 
+  ##### Image caching
+  
+  imageStorage = {}
+  imageStorageKeys = []
+  hubotUrl = process.env.HUBOT_URL || process.env.HEROKU_URL || "http://localhost:#{process.env.PORT || 8080}"
+  hubotUrl = hubotUrl.replace(/\/$/,'')
+
+  hubotCachesImage = process.env.HUBOT_CACHE_IMAGE
+
+  getZabbixImageURL = (url, callback) ->
+    getImageURL(url, "zbx_sessionid=#{token}", callback)
+
+  getImageURL = (url, cookie, callback) ->
+    return callback(url) unless hubotCachesImage
+
+    robot.logger.info "Caching #{url} #{cookie}"
+    robot.http(url.replace(/#.+$/,'')).header('Cookie', cookie || "")
+      .encoding('binary').get() (err, res, body) ->
+        while 50 < imageStorageKeys.length
+          delete imageStorage[imageStoragesKeys.shift()]
+
+        hash = crypto.createHash('sha1')
+        hash.update(body)
+        key = "#{hash.digest('hex')}.png"
+
+        imageStorage[key] = {
+          body: new Buffer(body, 'binary'),
+          type: res.headers['content-type']
+        }
+
+        robot.logger.info "Cached: #{key} -> #{url}"
+        callback("#{hubotUrl}/zbximg/#{key}")
+
+  robot.router.get '/zbximg/:key', (req, res) ->
+    cached = imageStorage[req.params.key]
+    if cached
+      res.set('Content-Type', cached.type)
+      res.send(cached.body)
+    else
+      res.status(404)
+      res.send('404')
+
+
+  ##### Look up utilities
+  #hostsByName = {}
+  #hostsById = {}
+
+  #flushCache = ->
+  #  hostsByName = {}
+  #  hostsById = {}
+
+  #getHostByName = (hostname, callback) ->
+  #  return callback(hostsByName[hostname]) if hostsByName[hostname]
+
+  #  params = {filter: [{host: hostname}]}
+  #  return request_('host.get', params, (res) ->
+  #    hostByName[hostname] = res.result[0]
+  #    return callback(res.result[0])
+  #  )
+
   ##### Utilities
   
   SEVERITY_STRINGS = {
@@ -85,6 +148,9 @@ module.exports = (robot) ->
     i = parseInt(val, 10)
     SEVERITY_STRINGS[i] || i.toString()
 
+  graphImg = (graphid, period, callback) ->
+    period = 3600 unless period
+    getZabbixImageURL "#{url}/chart2.php?graphid=#{graphid}&period=#{period}&width=497#.png", callback
 
   ##### Bootstrap
 
@@ -146,3 +212,40 @@ module.exports = (robot) ->
           "* #{maintenance}#{host.name} (#{stringSeverity(trigger.priority)}): #{trigger.description} (#{time})"
         ).join("\n")
       msg.send lines.join("\n").replace(/\n+/g,"\n")
+
+
+  # zabbix list graphs on <hostname>
+  robot.respond /(?:(?:zabbix|zbx)\s+(?:list\s+)?graphs?\s+(?:(?:on|of|for)\s+)?(.+))/i, (msg) ->
+    params = {
+      output: 'extend',
+      expandName: true,
+      filter: {host: msg.match[1]}
+    }
+
+    request msg, 'graph.get', params, (res) ->
+      response = (for graph in res.result
+        "- #{graph.name}"
+      ).join("\n")
+
+      msg.send response 
+
+  # zabbix graph <filter> on <hostname>
+  robot.respond /(?:(?:zabbix|zbx)\s+graphs?\s+(.+)\s+(?:on)\s+(.+))/i, (msg) ->
+    filter = new RegExp(msg.match[1], 'i')
+    host = msg.match[2]
+
+    params = {
+      output: 'extend',
+      expandName: true,
+      filter: {host: host}
+    }
+
+    msg.send("Graphs on #{host} (filter: #{msg.match[1]})")
+    request msg, 'graph.get', params, (res) ->
+      for graph in res.result
+        continue unless graph.name.match(filter)
+        console.log(graph.name)
+        ((g) ->
+          graphImg(g.graphid, null, (img) -> msg.send("#{g.name} #{img}"))
+        ) graph
+
