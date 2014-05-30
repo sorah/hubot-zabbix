@@ -100,7 +100,7 @@ module.exports = (robot) ->
         msg.send("Logged in to zabbix!")
 
   # zabbix (list) events (on host|for group) (sort(ed) by <key> (asc|desc))
-  robot.respond /(?:(?:zabbix|zbx)\s+(?:list\s+)?(?:event|alert)s?(?:\s+(on|for)\s+([^\s]+))?(?:\s+sort(?:ed)?\s+by\s+(.+?)(?:\s+(asc|desc)))?)/i, (msg) ->
+  robot.respond /(?:(?:zabbix|zbx)\s+(?:list\s+)?(?:event|alert)s?(?:\s+(on|of|for)\s+([^\s]+))?(?:\s+sort(?:ed)?\s+by\s+(.+?)(?:\s+(asc|desc)))?)/i, (msg) ->
     params = {
       output: 'extend',
       only_true: true,
@@ -114,7 +114,7 @@ module.exports = (robot) ->
     if msg.match[1] == 'on'
       # NOTE: params.host seems not working (it requires hostIds?)
       hostFilter = msg.match[2]
-    else if msg.match[1] == 'of'
+    else if msg.match[1] == 'of' || msg.match[1] == 'for'
       params.group = msg.match[2]
 
     if msg.match[3]
