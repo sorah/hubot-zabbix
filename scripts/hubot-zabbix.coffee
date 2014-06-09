@@ -174,7 +174,7 @@ module.exports = (robot) ->
       selectHosts: 'extend',
       selectLastEvent: 'extend', 
       expandDescription: true,
-      min_severity: process.env.HUBOT_ZABBIX_MIN_SEVERITY || 2
+      min_severity: process.env.HUBOT_ZABBIX_MIN_SEVERITY || 2,
       monitored: true
     }
 
