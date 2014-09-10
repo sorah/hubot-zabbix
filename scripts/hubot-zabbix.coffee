@@ -5,6 +5,7 @@
 #   HUBOT_ZABBIX_USER
 #   HUBOT_ZABBIX_PASSWORD
 #   HUBOT_ZABBIX_ENDPOINT
+#   HUBOT_ZABBIX_MIN_SEVERITY
 #
 # Commands:
 #   hubot auth to zabbix - let hubot to re-logging in to zabbix
@@ -173,6 +174,7 @@ module.exports = (robot) ->
       selectHosts: 'extend',
       selectLastEvent: 'extend', 
       expandDescription: true,
+      min_severity: process.env.HUBOT_ZABBIX_MIN_SEVERITY || 2,
       monitored: true
     }
 
