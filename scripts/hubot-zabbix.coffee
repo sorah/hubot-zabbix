@@ -74,6 +74,8 @@ module.exports = (robot) ->
         callback(null) if callback
     )
 
+  setInterval(-> getToken, 60 * 60)
+
   ##### Image caching
   
   imageStorage = {}
