@@ -8,4 +8,3 @@ module.exports = (robot) ->
     return unless exists
     for file in Fs.readdirSync(path)
       robot.loadFile(path, file)
-      robot.parseHelp(Path.join(path, file))
