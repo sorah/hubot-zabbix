@@ -13,6 +13,7 @@
 #   hubot zabbix events on <hostname> - list active events on host
 #   hubot zabbix events of <hostgroup> - list active events on hostgroup
 #   hubot zabbix events sort by [severity|time|hostname] - list active events sorted by given key (available on all `events` command)
+#   hubot zabbix graphs <regexp> on <hostname> [@<period>]- list graphs like <keyword> on <hostname>
 #   hubot zabbix graphs <regexp> on <hostname> - list graphs like <keyword> on <hostname>
 #
 # Author:
@@ -118,6 +119,29 @@ module.exports = (robot) ->
       res.status(404)
       res.send('404')
 
+  ##### Misc
+
+  parsePeriodStr = (str) ->
+    sec = 0
+
+    if str && str != ""
+      parts = str.match(/(?:(\d+)([dhms]?))/gi)
+      for part in parts
+        match = part.match(/(\d+)([dhms])?$/i)
+        num = parseInt(match[1], 10)
+        mod = match[2]?.toLowerCase()
+
+        switch mod
+          when 'd' then sec += 60 * 60 * 24 * num
+          when 'h' then sec += 60 * 60 * num
+          when 'm' then sec += 60 * num
+          when 's' then sec += num
+          else sec += num
+
+    if sec == 0
+      sec = 3600
+
+    sec
 
   ##### Look up utilities
   #hostsByName = {}
@@ -234,9 +258,10 @@ module.exports = (robot) ->
       msg.send response 
 
   # zabbix graph <filter> on <hostname>
-  robot.respond /(?:(?:zabbix|zbx)\s+graphs?\s+(.+)\s+(?:on)\s+(.+))/i, (msg) ->
+  robot.respond /(?:zabbix|zbx)\s+graphs?\s+(.+)\s+(?:on)\s+(.+?)(?:\s+@(.+))?$/i, (msg) ->
     filter = new RegExp(msg.match[1], 'i')
     host = msg.match[2]
+    periodStr = msg.match[3]
 
     params = {
       output: 'extend',
@@ -250,6 +275,6 @@ module.exports = (robot) ->
         continue unless graph.name.match(filter)
         console.log(graph.name)
         ((g) ->
-          graphImg(g.graphid, null, (img) -> msg.send("#{g.name} #{img}"))
+          graphImg(g.graphid, parsePeriodStr(periodStr), (img) -> msg.send("#{g.name} #{img}"))
         ) graph
 
