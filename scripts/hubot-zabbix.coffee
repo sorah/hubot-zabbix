@@ -78,7 +78,7 @@ module.exports = (robot) ->
   setInterval((-> getToken()), 60 * 60 * 1000)
 
   ##### Image caching
-  
+
   imageStorage = {}
   imageStorageKeys = []
   hubotUrl = process.env.HUBOT_URL || process.env.HEROKU_URL || "http://localhost:#{process.env.PORT || 8080}"
@@ -161,7 +161,7 @@ module.exports = (robot) ->
   #  )
 
   ##### Utilities
-  
+
   SEVERITY_STRINGS = {
     0: 'Not classified',
     1: 'info',
