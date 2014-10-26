@@ -75,7 +75,7 @@ module.exports = (robot) ->
         callback(null) if callback
     )
 
-  setInterval(-> getToken, 60 * 60)
+  setInterval((-> getToken()), 60 * 60 * 1000)
 
   ##### Image caching
   
