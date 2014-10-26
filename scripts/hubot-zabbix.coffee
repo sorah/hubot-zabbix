@@ -13,7 +13,7 @@
 #   hubot zabbix events on <hostname> - list active events on host
 #   hubot zabbix events of <hostgroup> - list active events on hostgroup
 #   hubot zabbix events sort by [severity|time|hostname] - list active events sorted by given key (available on all `events` command)
-#   hubot zabbix graphs <regexp> on <hostname> [@<period>]- list graphs like <keyword> on <hostname>
+#   hubot zabbix graphs <regexp> on <hostname> [@<period>] - list graphs like <keyword> on <hostname>
 #   hubot zabbix graphs <regexp> on <hostname> - list graphs like <keyword> on <hostname>
 #
 # Author:
