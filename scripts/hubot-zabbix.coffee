@@ -14,7 +14,7 @@
 #   hubot zabbix events of <hostgroup> - list active events on hostgroup
 #   hubot zabbix events sort by [severity|time|hostname] - list active events sorted by given key (available on all `events` command)
 #   hubot zabbix graphs <regexp> on <hostname> [@<period>] - list graphs like <keyword> on <hostname>
-#   hubot zabbix graphs <regexp> on <hostname> - list graphs like <keyword> on <hostname>
+#   hubot zabbix graphs <regexp> of <hostgroup> [@<period>] - list graphs like <keyword> of <hostgroup>
 #
 # Author:
 #   Shota Fukumori (sora_h) <http://sorah.jp/>
@@ -159,6 +159,14 @@ module.exports = (robot) ->
   #    hostByName[hostname] = res.result[0]
   #    return callback(res.result[0])
   #  )
+  #
+
+  getHostgroups = (msg, filter, callback) ->
+    params = {
+      output: 'extend',
+      filter: {name: filter}
+    }
+    request msg, 'hostgroup.get', params, callback
 
   ##### Utilities
 
@@ -258,23 +266,47 @@ module.exports = (robot) ->
       msg.send response 
 
   # zabbix graph <filter> on <hostname>
-  robot.respond /(?:zabbix|zbx)\s+graphs?\s+(.+)\s+(?:on)\s+(.+?)(?:\s+@(.+))?$/i, (msg) ->
+  robot.respond /(?:zabbix|zbx)\s+graphs?\s+(.+)\s+(on|of)\s+(.+?)(?:\s+@(.+))?$/i, (msg) ->
     filter = new RegExp(msg.match[1], 'i')
-    host = msg.match[2]
-    periodStr = msg.match[3]
+    host = msg.match[3]
+    periodStr = msg.match[4]
 
-    params = {
-      output: 'extend',
-      expandName: true,
-      filter: {host: host}
-    }
+    respond = ((hostgroups) =>
+      if hostgroups
+        params = {
+          output: 'extend',
+          selectHosts: true,
+          expandName: true,
+          groupids: (group.groupid for group in hostgroups)
 
-    msg.send("Graphs on #{host} (filter: #{msg.match[1]})")
-    request msg, 'graph.get', params, (res) ->
-      for graph in res.result
-        continue unless graph.name.match(filter)
-        console.log(graph.name)
-        ((g) ->
-          graphImg(g.graphid, parsePeriodStr(periodStr), (img) -> msg.send("#{g.name} #{img}"))
-        ) graph
+
+        }
+        msg.send("Graphs of #{(group.name for group in hostgroups).join(',')} (filter: #{msg.match[1]})")
+      else
+        params = {
+          output: 'extend',
+          expandName: true,
+          filter: {host: host}
+        }
+        msg.send("Graphs on #{host} (filter: #{msg.match[1]})")
+
+      request msg, 'graph.get', params, (res) ->
+        for graph in res.result
+          continue unless graph.name.match(filter)
+          console.log(graph.name)
+          ((g) ->
+            graphImg(g.graphid, parsePeriodStr(periodStr), (img) ->
+              if hostgroups
+                msg.send("[#{(host.name for host in g.hosts).join(',')}] #{g.name} #{img}")
+              else
+                msg.send("#{g.name} #{img}")
+            )
+          ) graph
+    )
+
+    switch msg.match[2]
+      when "on"
+        respond(null)
+      when "of"
+        getHostgroups(msg, host, (res) => respond(res.result))
 
