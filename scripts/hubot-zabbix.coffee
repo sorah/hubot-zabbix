@@ -278,8 +278,6 @@ module.exports = (robot) ->
           selectHosts: true,
           expandName: true,
           groupids: (group.groupid for group in hostgroups)
-
-
         }
         msg.send("Graphs of #{(group.name for group in hostgroups).join(',')} (filter: #{msg.match[1]})")
       else
