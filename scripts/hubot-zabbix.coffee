@@ -247,7 +247,10 @@ module.exports = (robot) ->
             maintenance = ''
           "* #{maintenance}#{host.name} (#{stringSeverity(trigger.priority)}): #{trigger.description} (#{time})"
         ).join("\n")
-      msg.send lines.join("\n").replace(/\n+/g,"\n")
+      if lines.length == 0
+        msg.send "Great! No alerts for that!"
+      else
+        msg.send lines.join("\n").replace(/\n+/g,"\n")
 
 
   # zabbix list graphs on <hostname>
